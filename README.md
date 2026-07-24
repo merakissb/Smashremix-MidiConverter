@@ -55,8 +55,8 @@ secuencia de la N64 con el **Goldeneye Setup Editor** (ver el readme del repo
 ## El mapeo al banco de Smash Remix (lo importante)
 
 El banco del juego **no es General MIDI**: son 70 instrumentos y el número de
-programa es un índice directo a ese banco. Reglas duras (de
-`/home/meraki/smashremix/readme.md`, sección "Tabla de instrumentos"):
+programa es un índice directo a ese banco. Reglas duras (documentadas en el
+repositorio de **Smash Remix**, sección "Tabla de instrumentos" de su readme):
 
 - **Todo programa debe estar entre 1 y 70.** Un programa fuera de rango (0, o 71+)
   **corta TODO el audio del juego** en el momento en que entra ese canal. Es el
@@ -161,9 +161,9 @@ para máxima fidelidad, y `baja` solo para canciones realmente saturadas.
 
 El `.mid` que produce este programa se convierte al formato de la N64 con el
 **Goldeneye Setup Editor** (`Tools > Extra Tools > MIDI Tools > Convert Midi to GE
-Format and Loop`), y luego se registra en el repo `smashremix`. Ese proceso
-(loop, volumen CC7, registro en `midi.asm`/`Toggles.asm`/`SRAM.asm`) está
-documentado en `/home/meraki/smashremix/readme.md`.
+Format and Loop`), y luego se registra en el repositorio de **Smash Remix**.
+Ese proceso (loop, volumen CC7, registro en `midi.asm`/`Toggles.asm`/`SRAM.asm`)
+está documentado en el readme de ese repositorio.
 
 ---
 

@@ -60,7 +60,7 @@ MAX_TRACKS = 16
 # General MIDI. Son 70 entradas y el número de programa es un índice
 # DIRECTO a ese banco: el byte del Program Change (Cn prog) = índice 1-70.
 #
-# Reglas duras del readme de smashremix (ver /home/meraki/smashremix/readme.md):
+# Reglas duras documentadas en el readme del repositorio de Smash Remix:
 #   - Todo programa debe estar entre 1 y 70. Un programa fuera de rango
 #     (0, o 71+) CORTA TODO EL AUDIO del juego al entrar ese canal.
 #   - El programa 18 es la percusión (Main Percussion). No hay canal de
