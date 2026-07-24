@@ -10,6 +10,9 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 
+# --- Caché de huellas tímbricas del .sf2 (se regenera solo) ---
+.timbre_cache.json
+
 # --- Salidas y archivos intermedios (regenerables) ---
 *.mid
 *.midi
@@ -27,6 +30,13 @@ __pycache__/
 *.onnx
 *.pth
 *.th
+
+# --- SoundFont del juego (samples con copyright de Nintendo) ---
+# Se usa en local para la selección automática de instrumentos, pero NO se
+# redistribuye: cada quien lo saca de su propia copia de Smash Remix.
+# Ver la sección "Selección automática de instrumentos" del README.
+*.sf2
+sf2/
 
 # --- Configuración local de Claude Code (no compartir) ---
 .claude/settings.local.json

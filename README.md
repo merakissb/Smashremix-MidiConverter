@@ -158,14 +158,109 @@ venv/bin/python mp3_a_midi_gm.py cancion.mp3 --separador demucs --densidad media
 
 | Opción              | Valores                          | Por defecto | Qué hace |
 |---------------------|----------------------------------|-------------|----------|
-| `entrada`           | archivo `.mp3`                   | —           | Canción de entrada (obligatorio). |
+| `entrada`           | `.wav`, `.mp3`, `.flac`, …       | —           | Canción de entrada (obligatorio). **Se recomienda `.wav`/`.flac`** (ver abajo). |
 | `-o, --salida`      | ruta `.mid`                      | `<entrada>.mid` | Archivo MIDI de salida. |
 | `--separador`       | `demucs`, `roformer`             | `roformer`  | Motor de separación (ver arriba). Si falta `venv-separator/`, cae automáticamente a `demucs`. |
 | `--densidad`        | `alta`, `media`, `baja`          | `alta`      | `alta` = máxima fidelidad al original; `media` = poda ruido y limita polifonía por stem; `baja` = recorte fuerte (solo para canciones muy densas, puede sonar pobre). |
-| `--voces-por-stem`  | `1`, `2`, `3`                    | `2`         | Divide vocals/piano/guitar/other en sub-pistas por registro (agudo/grave). Batería y bajo siempre en 1 pista. |
+| `--voces-por-stem`  | `1`, `2`, `3`                    | `2`         | Divide vocals/piano/guitar/other en sub-pistas por registro (agudo/grave), **cada una con un timbre complementario**. Batería y bajo siempre en 1 pista. |
 | `--modelo`          | `htdemucs_6s`, `htdemucs`, …     | `htdemucs_6s` | Modelo de Demucs. Solo `htdemucs_6s` da los 6 stems por instrumento. |
 | `--dispositivo`     | `cpu`, `cuda`                    | `cpu`       | Usar `cuda` si tienes GPU NVIDIA (mucho más rápido). |
+| `--umbral-silencio` | dB (número)                      | `-35`       | Descarta stems cuyo nivel quede más de estos dB bajo el más fuerte (ver abajo). `-200` lo desactiva. |
+| `--auto-instrumentos` | (flag)                         | off         | Elige el instrumento de cada stem escuchando el audio (ver abajo). |
 | `--conservar-stems` | (flag)                           | off         | No borra los `.wav` intermedios de cada stem. |
+
+### Gate de energía: sin pistas fantasma
+
+Demucs **siempre** devuelve sus 6 stems, tenga o no la canción cada uno. En un
+instrumental, el stem de voz no queda vacío: queda con **sangrado** de otros
+instrumentos. Sin filtrar, eso genera "pistas fantasma" — un coro tocando notas
+que no existen en el original, gastando slots y polifonía de la N64.
+
+Antes de transcribir se mide el nivel de cada stem y se descartan los que quedan
+más de `--umbral-silencio` dB por debajo del más fuerte. El nivel se mide como el
+**percentil 95** de la energía RMS por ventana, no la media: así un instrumento
+que solo entra en el estribillo no se descarta por estar callado el resto.
+
+Todo queda en el log, para que sea auditable:
+
+```
+[mp3_a_midi_gm] Midiendo nivel de cada stem (gate de energía)...
+[mp3_a_midi_gm]   bass: -6.2 dB
+[mp3_a_midi_gm]   vocals: DESCARTADO — sin contenido real (-41.8 dB bajo el más fuerte)
+```
+
+Si un instrumental **sí** tiene un lead melódico que Demucs mandó al stem de voz,
+ese stem tendrá nivel alto y **no se descarta**: se conserva la melodía. El gate
+solo elimina lo que es efectivamente silencio o residuo.
+
+### Selección automática de instrumentos (`--auto-instrumentos`)
+
+Por defecto cada stem usa un instrumento fijo, así que dos canciones distintas
+salen con los mismos sonidos. Con este flag se agrega un paso que **escucha** el
+audio separado y elige el instrumento del banco que más se le parece:
+
+1. Se extraen los samples reales del `.sf2` del juego y se calcula una huella
+   tímbrica de cada instrumento (MFCC + brillo + ruido/distorsión + aspereza).
+2. Se calcula la misma huella para el stem separado.
+3. Se compara **solo contra instrumentos de la misma familia** (una guitarra
+   compite contra guitarras). Esto evita elecciones espectralmente parecidas pero
+   musicalmente absurdas.
+4. Si ni el mejor candidato se parece lo suficiente, **se respeta el instrumento
+   por defecto** en vez de forzar una mala elección.
+
+Ejemplo real: una canción con guitarras saturadas elige `Distortion Guitar (42)`,
+y otra con guitarras limpias elige `Nylon Guitar (38)`.
+
+Los flags manuales (`--voz`, `--guitarra`, …) tienen prioridad sobre la elección
+automática.
+
+**Timbres complementarios por registro.** Cuando un stem se divide en 2 sub-pistas
+(`--voces-por-stem 2`), la grave y la aguda usan **instrumentos distintos pero
+emparentados** en vez de duplicar el mismo sonido (que resulta confuso al
+escuchar). Con `--auto-instrumentos` la voz aguda recibe el 2º mejor candidato del
+ranking; sin él se usan pares curados:
+
+| Stem   | Voz grave            | Voz aguda            |
+|--------|----------------------|----------------------|
+| vocals | Choir Aahs           | Choir Ahhs 2         |
+| piano  | Acoustic Grand Piano | Electric Piano       |
+| guitar | Nylon Guitar         | Overdriven Guitar    |
+| bass   | Electric Bass        | Slap Bass            |
+| other  | Lead Synth           | Square Wave (NES)    |
+
+**Requiere el SoundFont del juego.** Este flag necesita `Smash64MidiInstruments.sf2`,
+que **no viene en este repositorio**: contiene samples de audio de Super Smash Bros. 64
+y no se redistribuye. Sácalo de tu propia copia de Smash Remix
+(`src/music/sf2/`) y déjalo en:
+
+```
+sf2/Smash64MidiInstruments.sf2
+```
+
+Si no está, el programa avisa y sigue con los instrumentos por defecto — el resto
+del pipeline funciona igual.
+
+> **Limitación:** el `.sf2` disponible solo trae samples de los instrumentos
+> **1-42** (los del ROM original). Los 43-70 que agrega Smash Remix son `.aifc`
+> con compresión VADPCM de N64, ilegible con herramientas estándar. Por eso la
+> selección automática solo elige entre instrumentos con sample disponible; para
+> el resto se mantienen los defaults curados.
+
+### Formato de entrada: usa WAV o FLAC si puedes
+
+Pese al nombre del proyecto, **acepta cualquier formato que lea ffmpeg**
+(`.wav`, `.mp3`, `.flac`, `.m4a`, …). No hay ninguna validación de extensión.
+
+**Conviene partir de un archivo sin pérdida (`.wav`/`.flac`)** cuando lo tengas:
+
+- **Separación de fuentes**: Demucs y RoFormer trabajan sobre el espectro. El MP3
+  descarta información (recorta agudos y añade ruido de cuantización), y esa
+  pérdida se arrastra a todos los stems. Es donde más se nota.
+- **Transcripción**: `basic-pitch` detecta notas por sus armónicos; los artefactos
+  del MP3 pueden emborronarlos.
+
+No conviertas un MP3 a WAV esperando ganar calidad: lo perdido en la compresión no
+vuelve. La recomendación aplica cuando tienes **el original** sin pérdida.
 
 ### Densidad de notas
 
