@@ -144,14 +144,14 @@ Si no existe, usa `--separador demucs` (no necesita este segundo entorno).
 ## Uso
 
 ```bash
-# Básico (Demucs, densidad media)
-venv/bin/python mp3_a_midi_gm.py cancion.mp3
+# Máxima calidad por defecto: RoFormer + densidad alta (+ GPU si tienes)
+venv/bin/python mp3_a_midi_gm.py cancion.mp3 --dispositivo cuda
 
-# Especificar salida y usar GPU
+# Especificar la salida
 venv/bin/python mp3_a_midi_gm.py cancion.mp3 -o salida.mid --dispositivo cuda
 
-# Máxima calidad y fidelidad: RoFormer + densidad media (por defecto)
-venv/bin/python mp3_a_midi_gm.py cancion.mp3 --separador roformer --dispositivo cuda
+# Más liviano/rápido: solo Demucs, podando ruido y polifonía por stem
+venv/bin/python mp3_a_midi_gm.py cancion.mp3 --separador demucs --densidad media
 ```
 
 ### Opciones
@@ -160,8 +160,8 @@ venv/bin/python mp3_a_midi_gm.py cancion.mp3 --separador roformer --dispositivo 
 |---------------------|----------------------------------|-------------|----------|
 | `entrada`           | archivo `.mp3`                   | —           | Canción de entrada (obligatorio). |
 | `-o, --salida`      | ruta `.mid`                      | `<entrada>.mid` | Archivo MIDI de salida. |
-| `--separador`       | `demucs`, `roformer`             | `demucs`    | Motor de separación (ver arriba). |
-| `--densidad`        | `alta`, `media`, `baja`          | `media`     | `alta` = máxima fidelidad; `media` = fiel con poda suave; `baja` = recorte fuerte (solo para canciones muy densas, puede sonar pobre). |
+| `--separador`       | `demucs`, `roformer`             | `roformer`  | Motor de separación (ver arriba). Si falta `venv-separator/`, cae automáticamente a `demucs`. |
+| `--densidad`        | `alta`, `media`, `baja`          | `alta`      | `alta` = máxima fidelidad al original; `media` = poda ruido y limita polifonía por stem; `baja` = recorte fuerte (solo para canciones muy densas, puede sonar pobre). |
 | `--voces-por-stem`  | `1`, `2`, `3`                    | `2`         | Divide vocals/piano/guitar/other en sub-pistas por registro (agudo/grave). Batería y bajo siempre en 1 pista. |
 | `--modelo`          | `htdemucs_6s`, `htdemucs`, …     | `htdemucs_6s` | Modelo de Demucs. Solo `htdemucs_6s` da los 6 stems por instrumento. |
 | `--dispositivo`     | `cpu`, `cuda`                    | `cpu`       | Usar `cuda` si tienes GPU NVIDIA (mucho más rápido). |
@@ -183,8 +183,15 @@ reduce densidad con post-filtros quirúrgicos que conservan las notas más prese
 La batería siempre se transcribe con fidelidad máxima (no se le aplica la densidad
 elegida), porque ya se detecta pobremente y los umbrales altos la borran.
 
-**Empieza con `--densidad media`** (por defecto): fiel y con poda suave. Usa `alta`
-para máxima fidelidad, y `baja` solo para canciones realmente saturadas.
+**Por defecto va `alta`**: máxima fidelidad al original. Usa `media` si quieres podar
+ruido, y `baja` solo para canciones realmente saturadas.
+
+> **Nota sobre la polifonía de la N64:** `media` limita las voces **por stem** (6),
+> no de forma global, así que con 10 pistas todavía pueden coincidir muchas notas a
+> la vez. Si el juego corta notas en pasajes densos, la solución real es ajustar
+> prioridades con `add_priority_override(...)` en `src/midi.asm` de Smash Remix
+> (o reducir pistas con `--voces-por-stem 1`). Un tope de polifonía **global** es una
+> mejora pendiente de este proyecto.
 
 ---
 

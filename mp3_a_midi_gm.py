@@ -637,16 +637,17 @@ def main() -> None:
              "con 3 se pueden llegar a ~14 (máximo total: 16). Por defecto: 2",
     )
     parser.add_argument(
-        "--densidad", default="media", choices=list(DENSITY_PROFILES.keys()),
-        help="Densidad de notas de la transcripción. 'baja' produce menos notas "
-             "(mejor para la polifonía limitada de la N64), 'alta' conserva casi "
-             "todo. Por defecto: media",
+        "--densidad", default="alta", choices=list(DENSITY_PROFILES.keys()),
+        help="Densidad de notas de la transcripción. 'alta' (por defecto) = máxima "
+             "fidelidad al original. 'media' poda ruido y limita polifonía por stem. "
+             "'baja' recorta fuerte (solo para canciones muy densas; puede sonar pobre)",
     )
     parser.add_argument(
-        "--separador", default="demucs", choices=["demucs", "roformer"],
-        help="Motor de separación de fuentes. 'demucs' = htdemucs_6s solo. "
-             "'roformer' = Mel-Band/BS-RoFormer para la voz + Demucs sobre el "
-             "instrumental para el resto (mejor calidad, más lento). Por defecto: demucs",
+        "--separador", default="roformer", choices=["demucs", "roformer"],
+        help="Motor de separación de fuentes. 'roformer' (por defecto) = BS-RoFormer "
+             "para la voz + Demucs sobre el instrumental para el resto (mejor calidad). "
+             "'demucs' = htdemucs_6s solo (más rápido, no necesita venv-separator). "
+             "Si falta el venv-separator, cae automáticamente a demucs",
     )
     parser.add_argument(
         "--conservar-stems", action="store_true",
@@ -677,7 +678,16 @@ def main() -> None:
 
     salida = args.salida or args.entrada.with_suffix(".mid")
     profile = DENSITY_PROFILES[args.densidad]
-    log(f"Densidad='{args.densidad}', separador='{args.separador}'")
+
+    # RoFormer necesita el venv aislado; si no está, seguimos con Demucs en vez
+    # de abortar (así el proyecto funciona recién clonado, sin el segundo venv).
+    separador = args.separador
+    if separador == "roformer" and not SEPARATOR_CLI.exists():
+        log("AVISO: no se encontró venv-separator; se usa Demucs en lugar de RoFormer.")
+        log("       Para habilitar RoFormer: pip install -r requirements-separator.txt")
+        separador = "demucs"
+
+    log(f"Densidad='{args.densidad}', separador='{separador}'")
 
     # Mapa efectivo de instrumentos: parte de los defaults y aplica los
     # overrides que el usuario haya pasado por CLI (--voz/--bajo/etc).
@@ -692,7 +702,7 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="stems_") as tmp:
         work_dir = Path(tmp)
-        if args.separador == "roformer":
+        if separador == "roformer":
             stems = run_roformer_plus_demucs(args.entrada, work_dir, args.modelo, args.dispositivo)
         else:
             stems = run_demucs(args.entrada, work_dir, args.modelo, args.dispositivo)
