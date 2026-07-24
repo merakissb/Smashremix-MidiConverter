@@ -1,0 +1,38 @@
+# --- Entornos virtuales (pesados, específicos de la máquina, regenerables) ---
+# Se reconstruyen con: pip install -r requirements.txt  (y requirements-separator.txt)
+venv/
+venv-separator/
+.venv/
+env/
+
+# --- Caché de Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# --- Salidas y archivos intermedios (regenerables) ---
+*.mid
+*.midi
+*.wav
+*_stems/
+
+# --- Audio de entrada (no versionar: suele tener copyright y es pesado) ---
+*.mp3
+*.flac
+*.m4a
+*.ogg
+
+# --- Pesos de modelos descargados (Demucs, RoFormer) ---
+*.ckpt
+*.onnx
+*.pth
+*.th
+
+# --- Configuración local de Claude Code (no compartir) ---
+.claude/settings.local.json
+
+# --- Varios del sistema / editores ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
