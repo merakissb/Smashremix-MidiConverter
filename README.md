@@ -77,6 +77,37 @@ Mapeo stem → instrumento (definido en `SMASH_STEM_MAP`):
 | drums  | 18   | Main Percussion (fijo)  |
 | other  | 6    | Lead Synth              |
 
+Estos son solo los **valores por defecto**. El banco tiene 70 instrumentos y
+puedes elegir otro para cada stem por canción (ver "Elegir instrumentos" abajo).
+
+---
+
+## Elegir instrumentos por canción
+
+Lo que suena "mejor" depende de cada canción, así que el instrumento de cada stem
+se puede cambiar sin tocar código, pasando un **número (1-70) o el nombre** del
+banco:
+
+```bash
+# Ver la paleta completa de los 70 instrumentos (nombre real + nombre GM del editor)
+venv/bin/python mp3_a_midi_gm.py --listar-instrumentos
+
+# Ejemplo: voz con "Sine Wave", guitarra distorsionada, lead con trompeta
+venv/bin/python mp3_a_midi_gm.py cancion.mp3 \
+    --voz "Sine Wave" --guitarra "Distortion Guitar" --otros 34
+```
+
+| Flag         | Stem afectado | Por defecto           |
+|--------------|---------------|-----------------------|
+| `--voz`      | vocals        | Choir Aahs (15)       |
+| `--bajo`     | bass          | Electric Bass (13)    |
+| `--guitarra` | guitar        | Nylon Guitar (38)     |
+| `--piano`    | piano         | Acoustic Grand (52)   |
+| `--otros`    | other         | Lead Synth (6)        |
+
+La batería queda fija en el programa 18 (Main Percussion), obligatorio para que
+suene como percusión. Los nombres no distinguen mayúsculas ni espacios/guiones.
+
 ---
 
 ## Instalación

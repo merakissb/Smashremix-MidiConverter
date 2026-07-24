@@ -86,6 +86,126 @@ SMASH_STEM_MAP = {
     "other":   (6,  "Other (Lead Synth)",          False),  # 6 = Lead Synth
 }
 
+# ----------------------------------------------------------------------
+# Paleta COMPLETA del banco de Smash Remix: byte de programa (1-70) ->
+# (nombre real del instrumento, nombre GM que muestra el editor).
+# Fuente: tabla del readme de Smash Remix + tabla cruzada GM->Smash. Sirve
+# para elegir a mano el instrumento de cada stem por canción (ver flags
+# --voz/--bajo/--guitarra/--piano/--otros y --listar-instrumentos).
+# ----------------------------------------------------------------------
+SMASH_BANK = {
+    1:  ("Flute",                 "Bright Acoustic"),
+    2:  ("Organ",                 "Electric Grand"),
+    3:  ("Synth Tuba",            "Honky-Tonk"),
+    4:  ("Synth Wave",            "Electric Piano 1"),
+    5:  ("Brass",                 "Electric Piano 2"),
+    6:  ("Lead Synth",            "Harpsichord"),
+    7:  ("Strings",               "Clavinet"),
+    8:  ("Electric Piano",        "Celesta"),
+    9:  ("Kalimba",               "Glockenspiel"),
+    10: ("Glockenspiel",          "Music Box"),
+    11: ("Slap Bass",             "Vibraphone"),
+    12: ("Synth Bass",            "Marimba"),
+    13: ("Electric Bass",         "Xylophone"),
+    14: ("Banjo",                 "Tubular Bells"),
+    15: ("Choir Aahs",            "Dulcimer"),
+    16: ("Pan Flute",             "Drawbar Organ"),
+    17: ("Timpani",               "Percussive Organ"),
+    18: ("Main Percussion",       "Rock Organ"),
+    19: ("Square Wave (NES)",     "Church Organ"),
+    20: ("Triangle (NES)",        "Reed Organ"),
+    21: ("White Noise (NES)",     "Accordion"),
+    22: ("Orchestral Hit",        "Harmonica"),
+    23: ("Drum Roll",             "Tango Accordion"),
+    24: ("Picked Bass-Clav-Organ","Nylon String Guitar"),
+    25: ("TR-808 Synth Drum",     "Steel String Guitar"),
+    26: ("Bass-S.Chord-Piano",    "Electric Jazz Guitar"),
+    27: ("Drums+Tubular Bells",   "Electric Clean Guitar"),
+    28: ("Pan Flute 2",           "Electric Muted Guitar"),
+    29: ("Synth Accordion",       "Overdriven Guitar"),
+    30: ("Trombone",              "Distortion Guitar"),
+    31: ("Drum w/ Cowbell",       "Guitar Harmonics"),
+    32: ("Acoustic Bass",         "Acoustic Bass"),
+    33: ("Steel Drums",           "Electric Bass (finger)"),
+    34: ("Trumpet",               "Electric Bass (pick)"),
+    35: ("Accordion",             "Fretless Bass"),
+    36: ("Bassoon",               "Slap Bass 1"),
+    37: ("Clarinet",              "Slap Bass 2"),
+    38: ("Nylon Guitar",          "Synth Bass 1"),
+    39: ("Muted Guitar",          "Synth Bass 2"),
+    40: ("Muted Trumpet",         "Violin"),
+    41: ("Overdriven Guitar",     "Viola"),
+    42: ("Distortion Guitar",     "Cello"),
+    43: ("Rock Organ",            "Contrabass"),
+    44: ("Choir Ahhs 2",          "Tremolo Strings"),
+    45: ("Choir Oohs",            "Pizzicato Strings"),
+    46: ("Slap Bass (Alt)",       "Orchestral Harp"),
+    47: ("Church Organ",          "Timpani"),
+    48: ("Steel Drum 2",          "String Ensemble 1"),
+    49: ("Distortion Guitar 2",   "String Ensemble 2"),
+    50: ("Tenor Sax",             "SynthStrings 1"),
+    51: ("Overdriven Guitar 2",   "SynthStrings 2"),
+    52: ("Acoustic Grand Piano",  "Choir Aahs"),
+    53: ("Slap Bass 1",           "Voice Oohs"),
+    54: ("Orchestra Hit",         "Synth Voice"),
+    55: ("Synth (Alt)",           "Orchestra Hit"),
+    56: ("Missing NES Wave",      "Trumpet"),
+    57: ("Nylon Guitar (Alt)",    "Trombone"),
+    58: ("Sawtooth (K64)",        "Tuba"),
+    59: ("Shogo Sakai Slide",     "Muted Trumpet"),
+    60: ("OOT Acoustic",          "French Horn"),
+    61: ("Pizzicato (FFXI)",      "Brass Section"),
+    62: ("Shamisen",              "SynthBrass 1"),
+    63: ("DK Rap",                "SynthBrass 2"),
+    64: ("Roll",                  "Soprano Sax"),
+    65: ("Yoshis",                "Alto Sax"),
+    66: ("Marimba",               "Tenor Sax"),
+    67: ("DF Chants",             "Baritone Sax"),
+    68: ("Monkeys",               "Oboe"),
+    69: ("Sine Wave",             "English Horn"),
+    70: ("Harp",                  "Bassoon"),
+}
+
+# Índice normalizado (nombre_real -> byte) para buscar por nombre en la CLI.
+def _norm(s: str) -> str:
+    return "".join(ch for ch in s.lower() if ch.isalnum())
+
+
+SMASH_NAME_TO_PROGRAM = {_norm(name): prog for prog, (name, _gm) in SMASH_BANK.items()}
+
+
+def resolve_instrument(value: str) -> int:
+    """
+    Convierte lo que el usuario pasó por CLI (un número 1-70 o el nombre de un
+    instrumento del banco) en el byte de programa correspondiente. Aborta con
+    un mensaje claro si no es válido.
+    """
+    value = value.strip()
+    if value.isdigit():
+        prog = int(value)
+        if not (SMASH_MIN_PROGRAM <= prog <= SMASH_MAX_PROGRAM):
+            sys.exit(f"ERROR: programa {prog} fuera de rango 1-70. Usa --listar-instrumentos.")
+        return prog
+    prog = SMASH_NAME_TO_PROGRAM.get(_norm(value))
+    if prog is None:
+        sys.exit(
+            f"ERROR: instrumento '{value}' no existe en el banco. "
+            "Usa --listar-instrumentos para ver los nombres válidos."
+        )
+    return prog
+
+
+def print_instrument_bank() -> None:
+    """Imprime la paleta completa del banco de Smash Remix y termina."""
+    print("Banco de instrumentos de Smash Remix (byte -> instrumento real  [nombre GM del editor])")
+    print("=" * 78)
+    for prog in sorted(SMASH_BANK):
+        real, gm = SMASH_BANK[prog]
+        marca = "  <- percusión (batería)" if prog == SMASH_DRUM_PROGRAM else ""
+        print(f"  {prog:>2}  {real:<26} [{gm}]{marca}")
+    print("\nUso: --voz / --bajo / --guitarra / --piano / --otros  <número o nombre>")
+
+
 # Orden de prioridad si algún día hay más de 16 stems (robustez, no debería
 # ocurrir con Demucs, que da máx. 6 stems, pero se deja preparado).
 STEM_PRIORITY = ["vocals", "drums", "bass", "piano", "guitar", "other"]
@@ -343,7 +463,7 @@ def apply_density_filters(stem_name: str, notes: list, profile: dict) -> list:
     return notes
 
 
-def build_gm_tracks_for_stem(stem_name: str, midi_data, n_voices: int, profile: dict) -> list:
+def build_gm_tracks_for_stem(stem_name: str, midi_data, n_voices: int, profile: dict, stem_map: dict) -> list:
     """
     Convierte las notas transcritas de un stem en una o varias pistas
     pretty_midi.Instrument con el programa GM correspondiente.
@@ -357,7 +477,7 @@ def build_gm_tracks_for_stem(stem_name: str, midi_data, n_voices: int, profile: 
 
     # Fallback para stems no mapeados: programa 52 (Acoustic Grand Piano),
     # dentro de rango 1-70 para no arriesgar el corte de audio del juego.
-    program, base_name, is_drum = SMASH_STEM_MAP.get(
+    program, base_name, is_drum = stem_map.get(
         stem_name, (52, f"{stem_name.title()} (Acoustic Grand)", False)
     )
 
@@ -455,7 +575,7 @@ def validate_smash_programs(tracks: list) -> None:
 
 def assemble_midi(
     stem_midis: dict[str, "pretty_midi.PrettyMIDI"], output_path: Path,
-    n_voices: int, profile: dict,
+    n_voices: int, profile: dict, stem_map: dict,
 ) -> None:
     import pretty_midi
 
@@ -468,7 +588,7 @@ def assemble_midi(
 
     all_tracks = []
     for stem_name in ordered_stems:
-        tracks = build_gm_tracks_for_stem(stem_name, stem_midis[stem_name], n_voices, profile)
+        tracks = build_gm_tracks_for_stem(stem_name, stem_midis[stem_name], n_voices, profile, stem_map)
         if not tracks:
             log(f"  (omitido: '{stem_name}' no tiene notas detectadas)")
         all_tracks.extend(tracks)
@@ -494,7 +614,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Separa instrumentos de un MP3 y genera un MIDI multipista con sonidos GM."
     )
-    parser.add_argument("entrada", type=Path, help="Archivo .mp3 de entrada")
+    parser.add_argument("entrada", type=Path, nargs="?", help="Archivo .mp3 de entrada")
     parser.add_argument(
         "-o", "--salida", type=Path, default=None,
         help="Ruta del .mid de salida (por defecto: <entrada>.mid)"
@@ -532,8 +652,24 @@ def main() -> None:
         "--conservar-stems", action="store_true",
         help="No borrar los archivos .wav intermedios de cada instrumento separado"
     )
+    # Overrides de instrumento por stem: número (1-70) o nombre del banco.
+    parser.add_argument("--voz",      metavar="INSTR", help="Instrumento para el stem de voz (nº 1-70 o nombre). Por defecto: Choir Aahs")
+    parser.add_argument("--bajo",     metavar="INSTR", help="Instrumento para el bajo. Por defecto: Electric Bass")
+    parser.add_argument("--guitarra", metavar="INSTR", help="Instrumento para la guitarra. Por defecto: Nylon Guitar")
+    parser.add_argument("--piano",    metavar="INSTR", help="Instrumento para el piano. Por defecto: Acoustic Grand Piano")
+    parser.add_argument("--otros",    metavar="INSTR", help="Instrumento para el stem 'other'. Por defecto: Lead Synth")
+    parser.add_argument(
+        "--listar-instrumentos", action="store_true",
+        help="Imprime la paleta completa del banco de Smash Remix y termina"
+    )
     args = parser.parse_args()
 
+    if args.listar_instrumentos:
+        print_instrument_bank()
+        return
+
+    if args.entrada is None:
+        sys.exit("ERROR: falta el archivo .mp3 de entrada. Usa -h para ayuda.")
     if not args.entrada.exists():
         sys.exit(f"ERROR: no existe el archivo de entrada: {args.entrada}")
 
@@ -542,6 +678,17 @@ def main() -> None:
     salida = args.salida or args.entrada.with_suffix(".mid")
     profile = DENSITY_PROFILES[args.densidad]
     log(f"Densidad='{args.densidad}', separador='{args.separador}'")
+
+    # Mapa efectivo de instrumentos: parte de los defaults y aplica los
+    # overrides que el usuario haya pasado por CLI (--voz/--bajo/etc).
+    stem_map = {k: v for k, v in SMASH_STEM_MAP.items()}
+    overrides = {"vocals": args.voz, "bass": args.bajo, "guitar": args.guitarra,
+                 "piano": args.piano, "other": args.otros}
+    for stem, value in overrides.items():
+        if value is not None:
+            prog = resolve_instrument(value)
+            stem_map[stem] = (prog, f"{stem.title()} ({SMASH_BANK[prog][0]})", False)
+            log(f"  Instrumento '{stem}' -> {prog} = {SMASH_BANK[prog][0]}")
 
     with tempfile.TemporaryDirectory(prefix="stems_") as tmp:
         work_dir = Path(tmp)
@@ -567,7 +714,7 @@ def main() -> None:
                 shutil.copy(wav_path, destino_stems / wav_path.name)
             log(f"Stems .wav conservados en: {destino_stems}")
 
-        assemble_midi(stem_midis, salida, args.voces_por_stem, profile)
+        assemble_midi(stem_midis, salida, args.voces_por_stem, profile, stem_map)
 
 
 if __name__ == "__main__":
