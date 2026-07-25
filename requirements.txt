@@ -1,18 +1,7 @@
-# Entorno PRINCIPAL (venv/): separación con Demucs + transcripción con basic-pitch.
+# Dependencias de midi-a-smash.
 # Instalar con:  pip install -r requirements.txt
-# Requiere además ffmpeg instalado a nivel de sistema operativo.
 #
-# IMPORTANTE: este entorno va con numpy<2. El tflite_runtime que usa
-# basic-pitch está compilado contra numpy 1.x y crashea con numpy 2.
-# La separación RoFormer (audio-separator) exige numpy>=2, por eso vive
-# en un venv APARTE (ver requirements-separator.txt).
-
-# setuptools<81 es necesario: versiones más nuevas eliminaron pkg_resources,
-# que basic-pitch todavía requiere internamente (causa "No module named 'pkg_resources'").
-setuptools<81
-
-demucs>=4.0.1
-basic-pitch>=0.4.0
-pretty_midi>=0.2.10
-torch>=2.0.0
-numpy<2.0.0
+# La herramienta trabaja a nivel de mensaje MIDI (leer, remapear instrumentos,
+# escribir), para lo cual mido es la biblioteca estándar y mejor mantenida.
+# No requiere ffmpeg, ni GPU, ni soundfonts: la conversión es puro MIDI.
+mido>=1.3.0
